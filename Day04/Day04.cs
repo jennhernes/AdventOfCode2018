@@ -6,18 +6,6 @@ using System.Threading.Tasks;
 
 namespace Day04
 {
-    public class GuardSleepSchedule
-    {
-        public string id;
-        public int[] minutes;
-
-        public GuardSleepSchedule(string id)
-        {
-            this.id = id;
-            this.minutes = new int[60];
-        }
-    }
-
     class Day04
     {
         static void Part1()
@@ -25,9 +13,9 @@ namespace Day04
             string line;
             string[] delims = { "[", "] " };
             List<string> sortedRecords = new List<string>();
-            List<string[]> splitRecords = new List<string[]>();
+            List<string[]> splitRecords = new List<string[]>(); // sorted and split
 
-            var file = new System.IO.StreamReader("C:\\Users\\Jenn\\Documents\\AdventOfCode2018\\Day04\\puzzle.txt");
+            var file = new System.IO.StreamReader("..\\..\\puzzle.txt");
             while ((line = file.ReadLine()) != null)
             {
                 sortedRecords.Add(line);
@@ -36,58 +24,152 @@ namespace Day04
             sortedRecords.Sort();
             foreach (string record in sortedRecords)
             {
+                /*
+                 * splitRecords[i][0] == date and time without []
+                 * splitRecords[i][1] == start shift / falls asleep / wakes up
+                 */
                 splitRecords.Add(record.Split(delims, System.StringSplitOptions.RemoveEmptyEntries));
             }
 
-            string sleepiestID = splitRecords[0][1].Substring(6,5);
-            string currentID = "";
-            List<GuardSleepSchedule> guardSleepSchedules = new List<GuardSleepSchedule>();
-            int sleepStart = 0;
-            int sleepEnd = 0;
-            Dictionary<string, int> guardSleepMins = new Dictionary<string, int>();
-
-
-            foreach (string[] record in splitRecords)
+            string sleepiestGuard = "";
+            Dictionary<string, int[]> guards = new Dictionary<string, int[]>();
+            int startSleep = 0;
+            int endSleep = 0;
+            int minutesSlept = 0;
+            int maxMinutesSlept = 0;
+            string currentGuard = "";
+            for (int i = 0; i < splitRecords.Count; i++)
             {
-                if (record[1].Substring(0, 5) == "Guard")
+                string action = splitRecords[i][1];
+                if (action.Substring(0,5) == "Guard")
                 {
-                    currentID = record[1].Substring(6, 5);
-                    if (!guardSleepMins.ContainsKey(currentID))
+                    if (currentGuard != "")
                     {
-                        guardSleepMins.Add(currentID, 0);
-                        guardSleepSchedules.Add(new GuardSleepSchedule(currentID));
+                        minutesSlept = guards[currentGuard][60];
+                        if (minutesSlept > maxMinutesSlept)
+                        {
+                            maxMinutesSlept = minutesSlept;
+                            sleepiestGuard = currentGuard;
+                        }
                     }
-
-                }
-                else if (record[1] == "falls asleep")
-                {
-                    sleepStart = int.Parse(record[0].Substring(14, 2));
-                }
-                else // == "wakes up"
-                {
-                    sleepEnd = int.Parse(record[0].Substring(14, 2));
-                    guardSleepMins[currentID] += sleepEnd - sleepStart;
-                    if (currentID != sleepiestID &&
-                        guardSleepMins[currentID] > guardSleepMins[sleepiestID])
+                    currentGuard = splitRecords[i][1].Split()[1];
+                    if (!guards.ContainsKey(currentGuard))
                     {
-                        sleepiestID = currentID;
+                        guards.Add(currentGuard, new int[61]);
                     }
-
-                    for (int i = sleepStart; i < sleepEnd; i++)
+                    minutesSlept = 0;
+                } else if (action == "falls asleep")
+                {
+                    startSleep = int.Parse(splitRecords[i][0].Substring(14, 2));
+                } else if (action == "wakes up")
+                {
+                    endSleep = int.Parse(splitRecords[i][0].Substring(14, 2));
+                    guards[currentGuard][60] += (endSleep - startSleep);
+                    for (int k = startSleep; k < endSleep; k++)
                     {
-                        GuardSleepSchedule schedule = guardSleepSchedules.Where<GuardSleepSchedule>(x => return (x.id == currentID); ).Single<GuardSleepSchedule>();
-                        int index = guardSleepSchedules.IndexOf(schedule);
+                        guards[currentGuard][k]++;
                     }
                 }
             }
 
-            System.Diagnostics.Debug.WriteLine(sleepiestID);
+            int sleepiestMinute = 0;
+            int maxTimesAsleep = 0;
+            int[] sleepSchedule = guards[sleepiestGuard];
+            for (int i = 0; i < 60; i++)
+            {
+                if (sleepSchedule[i] > maxTimesAsleep)
+                {
+                    sleepiestMinute = i;
+                    maxTimesAsleep = sleepSchedule[i];
+                }
+            }
+
+            int answer = int.Parse(sleepiestGuard.Substring(1)) * sleepiestMinute;
+            System.Diagnostics.Debug.WriteLine(answer);
+        }
+
+        static void Part2()
+        {
+            string line;
+            string[] delims = { "[", "] " };
+            List<string> sortedRecords = new List<string>();
+            List<string[]> splitRecords = new List<string[]>(); // sorted and split
+
+            var file = new System.IO.StreamReader("..\\..\\puzzle.txt");
+            while ((line = file.ReadLine()) != null)
+            {
+                sortedRecords.Add(line);
+
+            }
+            sortedRecords.Sort();
+            foreach (string record in sortedRecords)
+            {
+                /*
+                 * splitRecords[i][0] == date and time without []
+                 * splitRecords[i][1] == start shift / falls asleep / wakes up
+                 */
+                splitRecords.Add(record.Split(delims, System.StringSplitOptions.RemoveEmptyEntries));
+            }
+
+            Dictionary<string, int[]> guards = new Dictionary<string, int[]>();
+            int startSleep = 0;
+            int endSleep = 0;
+            int maxTimesSlept = 0;
+            int chosenMinute = 0;
+            string sleepiestGuard = "";
+            string currentGuard = "";
+            for (int i = 0; i < splitRecords.Count; i++)
+            {
+                string action = splitRecords[i][1];
+                if (action.Substring(0, 5) == "Guard")
+                {
+                    currentGuard = splitRecords[i][1].Split()[1];
+                    if (!guards.ContainsKey(currentGuard))
+                    {
+                        guards.Add(currentGuard, new int[61]);
+                    }
+                }
+                else if (action == "falls asleep")
+                {
+                    startSleep = int.Parse(splitRecords[i][0].Substring(14, 2));
+                }
+                else if (action == "wakes up")
+                {
+                    endSleep = int.Parse(splitRecords[i][0].Substring(14, 2));
+                    guards[currentGuard][60] += (endSleep - startSleep);
+                    for (int k = startSleep; k < endSleep; k++)
+                    {
+                        guards[currentGuard][k]++;
+                        if (guards[currentGuard][k] > maxTimesSlept)
+                        {
+                            maxTimesSlept = guards[currentGuard][k];
+                            chosenMinute = k;
+                            sleepiestGuard = currentGuard;
+                        }
+                    }
+                }
+            }
+
+            int sleepiestMinute = 0;
+            int maxTimesAsleep = 0;
+            int[] sleepSchedule = guards[sleepiestGuard];
+            for (int i = 0; i < 60; i++)
+            {
+                if (sleepSchedule[i] > maxTimesAsleep)
+                {
+                    sleepiestMinute = i;
+                    maxTimesAsleep = sleepSchedule[i];
+                }
+            }
+
+            int answer = int.Parse(sleepiestGuard.Substring(1)) * sleepiestMinute;
+            System.Diagnostics.Debug.WriteLine(answer);
         }
 
         static void Main(string[] args)
         {
-            Part1();
-            //Part2();
+            // Part1();
+            Part2();
         }
     }
 }
